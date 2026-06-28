@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshBtn.addEventListener('click', fetchNotes);
     retryBtn.addEventListener('click', fetchNotes);
     themeToggleBtn.addEventListener('click', toggleTheme);
+    document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
     
     searchInput.addEventListener('input', (e) => {
         currentSearchQuery = e.target.value.toLowerCase();
@@ -160,6 +161,9 @@ function renderFeed() {
                     <span class="card-date"><i class="fa-regular fa-calendar"></i> ${note.published}</span>
                 </div>
                 <div class="card-actions">
+                    <button class="btn btn-icon btn-copy-card" title="Copy text to clipboard">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
                     <button class="btn btn-icon btn-tweet-card" title="Tweet about this update">
                         <i class="fa-brands fa-x-twitter"></i>
                     </button>
@@ -177,6 +181,10 @@ function renderFeed() {
         // Wire tweet action
         const tweetBtn = card.querySelector('.btn-tweet-card');
         tweetBtn.addEventListener('click', () => openTweetModal(note));
+
+        // Wire copy action
+        const copyBtn = card.querySelector('.btn-copy-card');
+        copyBtn.addEventListener('click', () => copyToClipboard(note, copyBtn));
 
         feedList.appendChild(card);
     });
@@ -271,3 +279,71 @@ function submitTweet() {
     window.open(tweetUrl, '_blank', 'width=550,height=420');
     closeTweetModal();
 }
+
+// Copy to Clipboard Utility
+async function copyToClipboard(note, buttonElement) {
+    // Extract plain text from summary HTML content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = note.content;
+    const plainTextContent = tempDiv.textContent || tempDiv.innerText || '';
+
+    const formattedCopyText = `BigQuery Release Note [${note.published}] - ${note.type.toUpperCase()}\n\nTitle: ${note.title}\n\nDetails:\n${plainTextContent.trim()}\n\nLink: ${note.link || 'N/A'}`;
+    
+    try {
+        await navigator.clipboard.writeText(formattedCopyText);
+        
+        // Show visual feedback
+        const icon = buttonElement.querySelector('i');
+        icon.className = 'fa-solid fa-check';
+        icon.style.color = '#10b981';
+        
+        setTimeout(() => {
+            icon.className = 'fa-regular fa-copy';
+            icon.style.color = '';
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy text: ', err);
+        alert('Could not copy to clipboard. Please select and copy manually.');
+    }
+}
+
+// Export list to CSV
+function exportToCSV() {
+    if (filteredNotes.length === 0) {
+        alert('No notes available to export.');
+        return;
+    }
+
+    const headers = ['Date', 'Type', 'Title', 'Content', 'Link'];
+    
+    const rows = filteredNotes.map(note => {
+        // Strip HTML, escape quotes for CSV compatibility
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = note.content;
+        const plainTextContent = (tempDiv.textContent || tempDiv.innerText || '').replace(/"/g, '""');
+        const escapedTitle = note.title.replace(/"/g, '""');
+        
+        return [
+            `"${note.published}"`,
+            `"${note.type}"`,
+            `"${escapedTitle}"`,
+            `"${plainTextContent.trim()}"`,
+            `"${note.link || ''}"`
+        ];
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+        + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    
+    const dateStr = new Date().toISOString().slice(0, 10);
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `bigquery_release_notes_${dateStr}.csv`);
+    document.body.appendChild(link);
+    
+    link.click();
+    document.body.removeChild(link);
+}
+
