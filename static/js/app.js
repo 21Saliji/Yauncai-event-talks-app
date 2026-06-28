@@ -12,7 +12,7 @@ const errorMessage = document.getElementById('error-message');
 const refreshBtn = document.getElementById('refresh-btn');
 const refreshIcon = document.getElementById('refresh-icon');
 const retryBtn = document.getElementById('retry-btn');
-const themeToggleBtn = document.getElementById('theme-toggle');
+const themeCheckbox = document.getElementById('theme-checkbox');
 const searchInput = document.getElementById('search-input');
 const filterTags = document.querySelectorAll('.filter-tag');
 
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Listeners
     refreshBtn.addEventListener('click', fetchNotes);
     retryBtn.addEventListener('click', fetchNotes);
-    themeToggleBtn.addEventListener('click', toggleTheme);
+    themeCheckbox.addEventListener('change', toggleTheme);
     document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
     
     searchInput.addEventListener('input', (e) => {
@@ -76,22 +76,20 @@ function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     if (savedTheme === 'light') {
         document.body.classList.add('light-theme');
-        themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+        themeCheckbox.checked = true;
     } else {
         document.body.classList.remove('light-theme');
-        themeToggleBtn.innerHTML = '<i class="fa-solid fa-moon"></i>';
+        themeCheckbox.checked = false;
     }
 }
 
 function toggleTheme() {
-    if (document.body.classList.contains('light-theme')) {
-        document.body.classList.remove('light-theme');
-        themeToggleBtn.innerHTML = '<i class="fa-solid fa-moon"></i>';
-        localStorage.setItem('theme', 'dark');
-    } else {
+    if (themeCheckbox.checked) {
         document.body.classList.add('light-theme');
-        themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
         localStorage.setItem('theme', 'light');
+    } else {
+        document.body.classList.remove('light-theme');
+        localStorage.setItem('theme', 'dark');
     }
 }
 
